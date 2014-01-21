@@ -35,42 +35,45 @@ func findTestsInFile(pathToFile string) {
 	}
 
 	fileSet := token.NewFileSet()
-	parsedFile, err := parser.ParseFile(fileSet, pathToFile, nil, 0)
+	rootNode, err := parser.ParseFile(fileSet, pathToFile, nil, 0)
 	if err != nil {
 		fmt.Printf("Error parsing '%s':\n%s\n", pathToFile, err)
 		return
 	}
 
-	testsToRewrite, rootNode := findTestFuncsAndRootNode(parsedFile)
-	topLevelDescribe := createDescribeBlock()
+	testsToRewrite := findTestFuncs(rootNode)
+	topLevelInitFunc := createInitBlock()
+
+	describeBlock := createDescribeBlock()
+	topLevelInitFunc.Body.List = append(topLevelInitFunc.Body.List, describeBlock)
 
 	for _, testFunc := range testsToRewrite {
-		rewriteTestInGinkgo(testFunc, rootNode, topLevelDescribe)
+		rewriteTestInGinkgo(testFunc, rootNode, describeBlock)
 	}
 
-	rootNode.Decls = append(rootNode.Decls, topLevelDescribe)
+	rootNode.Decls = append(rootNode.Decls, topLevelInitFunc)
 
-	ast.Inspect(rootNode, func(node ast.Node) bool {
-		if node == nil {
-			return true
-		}
-
-		fmt.Printf("%p => %#v\n", node, node)
-		return true
-	})
-
-	src, err := gofmtFile(parsedFile, fileSet)
-	if err != nil {
+	var buffer bytes.Buffer
+	if err := format.Node(&buffer, fileSet, rootNode); err != nil {
 		println(err.Error())
-		return
+			return
 	}
+	src = buffer.Bytes()
 
-	// TODO: overwrite in place
-	newFileName := fmt.Sprintf("%s.rewrite", pathToFile)
-	ioutil.WriteFile(newFileName, src, 0666)
+	// TODO: take a flag to overwrite in place
+	ioutil.WriteFile(strings.Replace(pathToFile, "_test.go", "ginkgo_test.go"), src, 0666)
 }
 
-func createDescribeBlock() (decl *ast.GenDecl) {
+func createInitBlock() (*ast.FuncDecl) {
+	blockStatement := &ast.BlockStmt{List: []ast.Stmt{}}
+	fieldList := &ast.FieldList{}
+	funcType := &ast.FuncType{Params: fieldList}
+	ident := &ast.Ident{Name: "init"}
+
+	return &ast.FuncDecl{Name: ident, Type: funcType, Body: blockStatement}
+}
+
+func createDescribeBlock() (*ast.ExprStmt) {
 	blockStatement := &ast.BlockStmt{List: []ast.Stmt{}}
 
 	fieldList := &ast.FieldList{}
@@ -79,27 +82,22 @@ func createDescribeBlock() (decl *ast.GenDecl) {
 	basicLit := &ast.BasicLit{Kind: 9, Value :"\"Testing with ginkgo\""}
 	describeIdent := &ast.Ident{Name: "Describe"}
 	callExpr := &ast.CallExpr{Fun: describeIdent, Args: []ast.Expr{basicLit, funcLit} }
-	ignoredDesc := &ast.Ident{Name: "_"}
-	valueSpec := &ast.ValueSpec{Values: []ast.Expr{callExpr}, Names: []*ast.Ident{ignoredDesc} }
-	decl = &ast.GenDecl{Specs: []ast.Spec{valueSpec} }
 
-	return
+	return &ast.ExprStmt{X: callExpr}
 }
 
-func findTestFuncsAndRootNode(parsedFile *ast.File) (testsToRewrite []*ast.FuncDecl, rootNode *ast.File) {
+func findTestFuncs(rootNode *ast.File) (testsToRewrite []*ast.FuncDecl) {
 	testNameRegexp := regexp.MustCompile("^Test[A-Z].+")
 
-	ast.Inspect(parsedFile, func(node ast.Node) bool {
+	ast.Inspect(rootNode, func(node ast.Node) bool {
 		if node == nil {
 			return false
 		}
 
 		switch node := node.(type) {
-		case *ast.File:
-			rootNode = node
 		case *ast.FuncDecl:
 			funcName := node.Name.Name
-			// TODO: also look at the params for this func
+			// FIXME: also look at the params for this func
 			matches := testNameRegexp.MatchString(funcName)
 			if matches {
 				testsToRewrite = append(testsToRewrite, node)
@@ -112,7 +110,7 @@ func findTestFuncsAndRootNode(parsedFile *ast.File) (testsToRewrite []*ast.FuncD
 	return
 }
 
-func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, decl *ast.GenDecl) {
+func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *ast.ExprStmt) {
 	// find index of testFunc in rootNode.Decls slice
 	var funcIndex int = -1
 	for index, child := range rootNode.Decls {
@@ -127,8 +125,6 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, decl *ast.G
 		os.Exit(1)
 	}
 
-	fmt.Printf("found index of test func %s :: %d\n", testFunc.Name.Name, funcIndex)
-
 	// create a new node
 	blockStatement := &ast.BlockStmt{List: testFunc.Body.List}
 	fieldList := &ast.FieldList{}
@@ -139,18 +135,20 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, decl *ast.G
 	callExpr := &ast.CallExpr{Fun: itBlockIdent, Args: []ast.Expr{basicLit, funcLit} }
 	expressionStatement := &ast.ExprStmt{X: callExpr}
 
-	var block *ast.BlockStmt = blockStatementFromDecl(decl)
+	// attach the test expressions to the describe's list of statments
+	var block *ast.BlockStmt = blockStatementFromDescribe(describe)
 	block.List = append(block.List, expressionStatement)
+
+	// append this to the declarations on the root node
 	rootNode.Decls = append(rootNode.Decls[:funcIndex], rootNode.Decls[funcIndex+1:]...)
 
 	return
 }
 
-func blockStatementFromDecl(decl *ast.GenDecl) (*ast.BlockStmt) {
+func blockStatementFromDescribe(desc *ast.ExprStmt) (*ast.BlockStmt) {
 	var funcLit *ast.FuncLit
-	valueSpec := decl.Specs[0].(*ast.ValueSpec)
-	args := valueSpec.Values[0].(*ast.CallExpr).Args
-	for _, node := range args {
+
+	for _, node := range desc.X.(*ast.CallExpr).Args {
 		switch node := node.(type) {
 		case *ast.FuncLit:
     	funcLit = node
@@ -161,6 +159,7 @@ func blockStatementFromDecl(decl *ast.GenDecl) (*ast.BlockStmt) {
 	return funcLit.Body
 }
 
+// TODO: inline me plz
 func gofmtFile(f *ast.File, fset *token.FileSet) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, f); err != nil {
