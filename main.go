@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"bytes"
 	"regexp"
+	"strings"
 	"go/ast"
 	"go/token"
 	"go/parser"
@@ -58,10 +59,10 @@ func findTestsInFile(pathToFile string) {
 		println(err.Error())
 			return
 	}
-	src = buffer.Bytes()
 
 	// TODO: take a flag to overwrite in place
-	ioutil.WriteFile(strings.Replace(pathToFile, "_test.go", "ginkgo_test.go"), src, 0666)
+	newFileName := strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
+	ioutil.WriteFile(newFileName, buffer.Bytes(), 0666)
 }
 
 func createInitBlock() (*ast.FuncDecl) {
@@ -157,13 +158,4 @@ func blockStatementFromDescribe(desc *ast.ExprStmt) (*ast.BlockStmt) {
 	}
 
 	return funcLit.Body
-}
-
-// TODO: inline me plz
-func gofmtFile(f *ast.File, fset *token.FileSet) ([]byte, error) {
-	var buf bytes.Buffer
-	if err := format.Node(&buf, fset, f); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
