@@ -1,16 +1,16 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"bytes"
+	"fmt"
+	"go/ast"
+	"go/format"
+	"go/parser"
+	"go/token"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
-	"go/ast"
-	"go/token"
-	"go/parser"
-	"go/format"
-	"io/ioutil"
 )
 
 func main() {
@@ -57,7 +57,7 @@ func findTestsInFile(pathToFile string) {
 	var buffer bytes.Buffer
 	if err := format.Node(&buffer, fileSet, rootNode); err != nil {
 		println(err.Error())
-			return
+		return
 	}
 
 	// TODO: take a flag to overwrite in place
@@ -65,7 +65,7 @@ func findTestsInFile(pathToFile string) {
 	ioutil.WriteFile(newFileName, buffer.Bytes(), 0666)
 }
 
-func createInitBlock() (*ast.FuncDecl) {
+func createInitBlock() *ast.FuncDecl {
 	blockStatement := &ast.BlockStmt{List: []ast.Stmt{}}
 	fieldList := &ast.FieldList{}
 	funcType := &ast.FuncType{Params: fieldList}
@@ -74,15 +74,15 @@ func createInitBlock() (*ast.FuncDecl) {
 	return &ast.FuncDecl{Name: ident, Type: funcType, Body: blockStatement}
 }
 
-func createDescribeBlock() (*ast.ExprStmt) {
+func createDescribeBlock() *ast.ExprStmt {
 	blockStatement := &ast.BlockStmt{List: []ast.Stmt{}}
 
 	fieldList := &ast.FieldList{}
 	funcType := &ast.FuncType{Params: fieldList}
 	funcLit := &ast.FuncLit{Type: funcType, Body: blockStatement}
-	basicLit := &ast.BasicLit{Kind: 9, Value :"\"Testing with ginkgo\""}
+	basicLit := &ast.BasicLit{Kind: 9, Value: "\"Testing with ginkgo\""}
 	describeIdent := &ast.Ident{Name: "Describe"}
-	callExpr := &ast.CallExpr{Fun: describeIdent, Args: []ast.Expr{basicLit, funcLit} }
+	callExpr := &ast.CallExpr{Fun: describeIdent, Args: []ast.Expr{basicLit, funcLit}}
 
 	return &ast.ExprStmt{X: callExpr}
 }
@@ -112,7 +112,6 @@ func findTestFuncs(rootNode *ast.File) (testsToRewrite []*ast.FuncDecl) {
 }
 
 func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *ast.ExprStmt) {
-	// find index of testFunc in rootNode.Decls slice
 	var funcIndex int = -1
 	for index, child := range rootNode.Decls {
 		if child == testFunc {
