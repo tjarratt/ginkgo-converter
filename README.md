@@ -47,10 +47,9 @@ Ginkgo-Convert's secret sauce is the ast/parser format package that Go ships wit
 
 What is left to do?
 -----------------------
-* "roundtrip" tests
-* automatically import ginkgo and gomega
-* take a package name to rewrite and recursively walk the directories in it
-* create a test suite file for your package (shell out to ginkgo?)
-* check for the presence of ginkgo && gomega?, ask the user to install it?
-* handle t.Fail(), t.Error, t.Log, t.Skip, etc in the AST rewriter
-* discover more edgecases in the AST rewriter (on-going)
+- "roundtrip" tests
+- take a package name to rewrite and recursively walk the directories in it
+- create a test suite file for your package (shell out to ginkgo?)
+- check for the presence of ginkgo && gomega?, ask the user to install it?
+- handle t.Fail(), t.Error, t.Log, t.Skip, etc in the AST rewriter
+- discover more edgecases in the AST rewriter (on-going)
