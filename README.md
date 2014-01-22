@@ -28,6 +28,8 @@ package amazing
 
 import (
   "testing"
+  . "github.com/onsi/gingko"
+  . "github.com/onsi/gomega"
 )
 
 func init() {
