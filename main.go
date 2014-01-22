@@ -42,6 +42,8 @@ func findTestsInFile(pathToFile string) {
 		return
 	}
 
+	addGinkgoImports(rootNode)
+
 	testsToRewrite := findTestFuncs(rootNode)
 	topLevelInitFunc := createInitBlock()
 
@@ -132,29 +134,78 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *a
 	funcLit := &ast.FuncLit{Type: funcType, Body: blockStatement}
 	basicLit := &ast.BasicLit{Kind: 9, Value: fmt.Sprintf("\"%s\"", testFunc.Name.Name)}
 	itBlockIdent := &ast.Ident{Name: "It"}
-	callExpr := &ast.CallExpr{Fun: itBlockIdent, Args: []ast.Expr{basicLit, funcLit} }
+	callExpr := &ast.CallExpr{Fun: itBlockIdent, Args: []ast.Expr{basicLit, funcLit}}
 	expressionStatement := &ast.ExprStmt{X: callExpr}
 
-	// attach the test expressions to the describe's list of statments
 	var block *ast.BlockStmt = blockStatementFromDescribe(describe)
 	block.List = append(block.List, expressionStatement)
-
-	// append this to the declarations on the root node
 	rootNode.Decls = append(rootNode.Decls[:funcIndex], rootNode.Decls[funcIndex+1:]...)
 
 	return
 }
 
-func blockStatementFromDescribe(desc *ast.ExprStmt) (*ast.BlockStmt) {
+func blockStatementFromDescribe(desc *ast.ExprStmt) *ast.BlockStmt {
 	var funcLit *ast.FuncLit
 
 	for _, node := range desc.X.(*ast.CallExpr).Args {
 		switch node := node.(type) {
 		case *ast.FuncLit:
-    	funcLit = node
-	    break
-  	}
+			funcLit = node
+			break
+		}
 	}
 
 	return funcLit.Body
+}
+
+func addGinkgoImports(rootNode *ast.File) {
+	var importDecl *ast.GenDecl
+	for _, declaration := range rootNode.Decls {
+		decl, ok := declaration.(*ast.GenDecl)
+		if !ok || len(decl.Specs) == 0 {
+			continue
+		}
+
+		_, ok = decl.Specs[0].(*ast.ImportSpec)
+		if ok {
+			importDecl = decl
+			break
+		}
+	}
+
+	if len(importDecl.Specs) == 0 {
+		// TODO: might need to create a import decl here
+		panic("unimplemented : expected to find an imports block")
+	}
+
+	needsGinkgo, needsGomega := true, true
+	for _, importSpec := range importDecl.Specs {
+		importSpec, ok := importSpec.(*ast.ImportSpec)
+		if !ok {
+			continue
+		}
+
+		if importSpec.Path.Value == "\"github.com/onsi/ginkgo\"" {
+			needsGinkgo = false
+		} else if importSpec.Path.Value == "\"github.com/onsi/gomega\"" {
+			needsGomega = false
+		}
+	}
+
+	if needsGinkgo {
+		importGinkgo := createImport("\"github.com/onsi/ginkgo\"")
+		importDecl.Specs = append(importDecl.Specs, importGinkgo)
+	}
+
+	if needsGomega {
+		importGomega := createImport("\"github.com/onsi/gomega\"")
+		importDecl.Specs = append(importDecl.Specs, importGomega)
+	}
+}
+
+func createImport(path string) *ast.ImportSpec {
+	return &ast.ImportSpec{
+		Name: &ast.Ident{Name: "."},
+		Path: &ast.BasicLit{Kind: 9, Value: path},
+	}
 }
