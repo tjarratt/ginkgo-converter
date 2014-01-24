@@ -1,4 +1,4 @@
-package boring
+package fixtures
 
 import (
 	"testing"

@@ -1,3 +1,4 @@
 debug/*
 pkg
 bin
+fixtures/*_ginkgo_test.go

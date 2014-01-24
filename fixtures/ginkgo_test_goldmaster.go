@@ -1,4 +1,4 @@
-package amazing
+package fixtures
 
 import (
 	. "github.com/onsi/gingko"

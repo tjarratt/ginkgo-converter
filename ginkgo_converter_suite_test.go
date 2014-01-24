@@ -1,13 +1,12 @@
-package ginkgo-converter_test
+package main_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"testing"
 )
 
-func TestGinkgo-Converter(t *testing.T) {
+func TestGinkgoConverter(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Ginkgo-Converter Suite")
 }

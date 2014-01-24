@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/format"
 	"go/parser"
 	"go/token"
@@ -15,16 +16,44 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		usage()
+		println("Error: Not enough args. Expected path to test file")
+		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
 		os.Exit(1)
 	}
 
-	findTestsInFile(os.Args[1])
+	println("looking for package", os.Args[1])
+	context := build.Default
+
+	pkg, err := context.Import(os.Args[1], ".", build.ImportMode(0))
+	if err != nil {
+		println("unexpected error reading package:", err.Error())
+		os.Exit(1)
+	}
+
+
+	fmt.Printf("pkg: %#v\n", pkg)
+	fmt.Printf("testfiles: %#v\n", pkg.TestGoFiles)
+	testFiles := pkg.TestGoFiles
+	dirFiles, err := ioutil.ReadDir(pkg.SrcRoot)
+	if err != nil {
+		println("error reading files in dir", pkg.SrcRoot, err)
+		os.Exit(1)
+	}
+
+	for _, file := range dirFiles {
+		if file.IsDir() {
+			fmt.Printf("%#v\n", file)
+			testFiles = append(testFiles, findTestsForPackage(file.Name())...)
+		}
+	}
+
+	println(testFiles)
+
+	// findTestsInFile(os.Args[1])
 }
 
-func usage() {
-	println("Error: Not enough args. Expected path to test file")
-	println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
+func findTestsForPackage(packageName string) (tests []string) {
+	return
 }
 
 func findTestsInFile(pathToFile string) {
