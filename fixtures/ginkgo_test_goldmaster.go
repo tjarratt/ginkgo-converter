@@ -1,14 +1,15 @@
 package fixtures
 
 import (
-	. "github.com/onsi/gingko"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"testing"
 )
 
 func init() {
-	Describe("Using ginkgo", func() {
+	Describe("Testing with ginkgo", func() {
 		It("TestSomethingImportant", func() {
+
 			whatever := &UselessStruct{}
 			t.Fail(whatever.ImportantField != "SECRET_PASSWORD")
 		})
