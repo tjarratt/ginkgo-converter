@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+type UselessStruct struct {
+	ImportantField string
+}
+
 func init() {
 	Describe("Testing with ginkgo", func() {
 		It("TestSomethingImportant", func() {
