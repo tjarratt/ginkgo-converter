@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"flag"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -16,16 +17,22 @@ import (
 	"strings"
 )
 
+var overwriteFlag = flag.Bool("destructive", false, "rewrite tests in-place")
+var shouldOverride bool
+
 func main() {
-	if len(os.Args) != 2 {
-		println("Error: Not enough args. Expected path to test file")
-		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
+	flag.Parse()
+	shouldOverride = *overwriteFlag
+
+	if len(flag.Args()) != 1 {
+		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go --destructive=(true|false)", os.Args[0]))
+		println("\n--destructive indicates that you want to update your tests in-place, and can possibly lead to data loss if your tests are not committed to version control (or otherwise backed up)")
 		os.Exit(1)
 	}
 
-	testFiles, err := findTestsForPackage(os.Args[1])
+	testFiles, err := findTestsForPackage(flag.Args()[0])
 	if err != nil {
-		fmt.Printf("unexpected error reading package: %s\n%s\n", os.Args[1], err.Error())
+		fmt.Printf("unexpected error reading package: %s\n%s\n", flag.Args()[0], err.Error())
 		os.Exit(1)
 	}
 
@@ -97,9 +104,14 @@ func findTestsInFile(pathToFile string) (err error) {
 		return
 	}
 
-	// TODO: take a flag to overwrite in place
-	newFileName := strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
-	ioutil.WriteFile(newFileName, buffer.Bytes(), 0666)
+	var fileToWrite string
+	if shouldOverride {
+		fileToWrite = pathToFile
+	} else {
+		fileToWrite = strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
+	}
+
+	ioutil.WriteFile(fileToWrite, buffer.Bytes(), 0666)
 	return
 }
 
