@@ -3,7 +3,6 @@ package fixtures
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 type UselessStruct struct {

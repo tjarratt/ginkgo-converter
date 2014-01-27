@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	testFiles, err := findTestsForPackage(os.Args[1])
-		if err != nil {
+	if err != nil {
 		fmt.Printf("unexpected error reading package: %s\n%s\n", os.Args[1], err.Error())
 		os.Exit(1)
 	}
@@ -76,6 +77,7 @@ func findTestsInFile(pathToFile string) (err error) {
 	}
 
 	addGinkgoImports(rootNode)
+	removeTestingImport(rootNode)
 
 	testsToRewrite := findTestFuncs(rootNode)
 	topLevelInitFunc := createInitBlock()
@@ -192,8 +194,7 @@ func blockStatementFromDescribe(desc *ast.ExprStmt) *ast.BlockStmt {
 	return funcLit.Body
 }
 
-func addGinkgoImports(rootNode *ast.File) {
-	var importDecl *ast.GenDecl
+func importsForRootNode(rootNode *ast.File) (imports *ast.GenDecl, err error) {
 	for _, declaration := range rootNode.Decls {
 		decl, ok := declaration.(*ast.GenDecl)
 		if !ok || len(decl.Specs) == 0 {
@@ -202,9 +203,37 @@ func addGinkgoImports(rootNode *ast.File) {
 
 		_, ok = decl.Specs[0].(*ast.ImportSpec)
 		if ok {
-			importDecl = decl
+			imports = decl
+			return
+		}
+	}
+
+	err = errors.New(fmt.Sprintf("Could not find imports for root node:\n\t%#v\n", rootNode))
+	return
+}
+
+func removeTestingImport(rootNode *ast.File) {
+	importDecl, err := importsForRootNode(rootNode)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var index int
+	for i, importSpec := range importDecl.Specs {
+		importSpec := importSpec.(*ast.ImportSpec)
+		if importSpec.Path.Value == "\"testing\"" {
+			index = i
 			break
 		}
+	}
+
+	importDecl.Specs = append(importDecl.Specs[:index], importDecl.Specs[index+1:]...)
+}
+
+func addGinkgoImports(rootNode *ast.File) {
+	importDecl, err := importsForRootNode(rootNode)
+	if err != nil {
+		panic(err.Error())
 	}
 
 	if len(importDecl.Specs) == 0 {
