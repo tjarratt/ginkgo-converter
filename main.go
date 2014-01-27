@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -21,53 +22,56 @@ func main() {
 		os.Exit(1)
 	}
 
-	println("looking for package", os.Args[1])
-	context := build.Default
-
-	pkg, err := context.Import(os.Args[1], ".", build.ImportMode(0))
-	if err != nil {
-		println("unexpected error reading package:", err.Error())
+	testFiles, err := findTestsForPackage(os.Args[1])
+		if err != nil {
+		fmt.Printf("unexpected error reading package: %s\n%s\n", os.Args[1], err.Error())
 		os.Exit(1)
 	}
 
+	for _, filename := range testFiles {
+		err := findTestsInFile(filename)
 
-	fmt.Printf("pkg: %#v\n", pkg)
-	fmt.Printf("testfiles: %#v\n", pkg.TestGoFiles)
-	testFiles := pkg.TestGoFiles
-	dirFiles, err := ioutil.ReadDir(pkg.SrcRoot)
-	if err != nil {
-		println("error reading files in dir", pkg.SrcRoot, err)
-		os.Exit(1)
-	}
-
-	for _, file := range dirFiles {
-		if file.IsDir() {
-			fmt.Printf("%#v\n", file)
-			testFiles = append(testFiles, findTestsForPackage(file.Name())...)
+		if err != nil {
+			panic(err.Error())
 		}
 	}
-
-	println(testFiles)
-
-	// findTestsInFile(os.Args[1])
 }
 
-func findTestsForPackage(packageName string) (tests []string) {
-	return
-}
-
-func findTestsInFile(pathToFile string) {
-	if _, err := os.Stat(pathToFile); err != nil {
-		dir, _ := os.Getwd()
-		fmt.Printf("Couldn't find file from dir %s\n", dir)
-		fmt.Printf("Error: given file '%s' does not exist\n", pathToFile)
+func findTestsForPackage(packageName string) (tests []string, err error) {
+	pkg, err := build.Default.Import(packageName, ".", build.ImportMode(0))
+	if err != nil {
 		return
 	}
 
+	for _, file := range pkg.TestGoFiles {
+		tests = append(tests, filepath.Join(pkg.Dir, file))
+	}
+
+	dirFiles, err := ioutil.ReadDir(pkg.Dir)
+	if err != nil {
+		return
+	}
+
+	for _, file := range dirFiles {
+		if !file.IsDir() {
+			continue
+		}
+
+		moreTests, err := findTestsForPackage(filepath.Join(pkg.ImportPath, file.Name()))
+		tests = append(tests, moreTests...)
+
+		if err != nil {
+			return tests, err
+		}
+	}
+
+	return
+}
+
+func findTestsInFile(pathToFile string) (err error) {
 	fileSet := token.NewFileSet()
 	rootNode, err := parser.ParseFile(fileSet, pathToFile, nil, 0)
 	if err != nil {
-		fmt.Printf("Error parsing '%s':\n%s\n", pathToFile, err)
 		return
 	}
 
@@ -86,7 +90,7 @@ func findTestsInFile(pathToFile string) {
 	rootNode.Decls = append(rootNode.Decls, topLevelInitFunc)
 
 	var buffer bytes.Buffer
-	if err := format.Node(&buffer, fileSet, rootNode); err != nil {
+	if err = format.Node(&buffer, fileSet, rootNode); err != nil {
 		println(err.Error())
 		return
 	}
@@ -94,6 +98,7 @@ func findTestsInFile(pathToFile string) {
 	// TODO: take a flag to overwrite in place
 	newFileName := strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
 	ioutil.WriteFile(newFileName, buffer.Bytes(), 0666)
+	return
 }
 
 func createInitBlock() *ast.FuncDecl {
