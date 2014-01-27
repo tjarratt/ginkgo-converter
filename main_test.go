@@ -21,10 +21,10 @@ func init() {
 		AfterEach(killAllConvertedGinkgoTests)
 
 		It("rewrites xunit tests as ginkgo tests", func() {
+			runGinkgoConvert("github.com/tjarratt/ginkgo-convert/fixtures")
+
 			cwd, err := os.Getwd()
 			Expect(err).NotTo(HaveOccurred())
-
-			rewriteTestsInPackage("github.com/tjarratt/ginkgo-convert/fixtures")
 			pathToFile := filepath.Join(cwd, "fixtures", "xunit_ginkgo_test.go")
 			convertedFile, err := ioutil.ReadFile(pathToFile)
 			Expect(err).NotTo(HaveOccurred())
@@ -35,10 +35,10 @@ func init() {
 		})
 
 		It("rewrites all tests in your package", func() {
+			runGinkgoConvert("github.com/tjarratt/ginkgo-convert/fixtures")
+
 			cwd, err := os.Getwd()
 			Expect(err).NotTo(HaveOccurred())
-
-			rewriteTestsInPackage("github.com/tjarratt/ginkgo-convert/fixtures")
 			pathToFile := filepath.Join(cwd, "fixtures", "nested", "nested_ginkgo_test.go")
 			convertedFile, err := ioutil.ReadFile(pathToFile)
 			Expect(err).NotTo(HaveOccurred())
@@ -59,7 +59,8 @@ func init() {
 				err = ioutil.WriteFile(filepath.Join(dir, "overwrite_test.go"), bytes, 0666)
 				Expect(err).NotTo(HaveOccurred())
 
-				overwriteTestsInPackage("github.com/tjarratt/ginkgo-convert/fixtures/overwrite")
+
+				runGinkgoConvert("--destructive", "github.com/tjarratt/ginkgo-convert/fixtures/overwrite")
 
 				expected, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "simple_test_goldmaster.go"))
 				Expect(err).NotTo(HaveOccurred())
@@ -126,24 +127,21 @@ func killTestsInDir(dir string) {
 	}
 }
 
-func rewriteTestsInPackage(packageToRewrite string) (convertedFile []byte) {
-	cwd, err := os.Getwd()
-	Expect(err).NotTo(HaveOccurred())
-	pathToExecutable := filepath.Join(cwd, "ginkgo-convert")
-	cmd := exec.Command(pathToExecutable, packageToRewrite)
-	err = cmd.Run()
-	Expect(err).NotTo(HaveOccurred())
-
+func rewriteTestsInPackage(packageToRewrite string) {
+	runGinkgoConvert(packageToRewrite)
 	return
 }
 
-func overwriteTestsInPackage(packageToRewrite string) (convertedFile []byte) {
+func overwriteTestsInPackage(packageToRewrite string) {
+	runGinkgoConvert("--destructive", packageToRewrite)
+	return
+}
+
+func runGinkgoConvert(args ...string) {
 	cwd, err := os.Getwd()
 	Expect(err).NotTo(HaveOccurred())
-	pathToExecutable := filepath.Join(cwd, "ginkgo-convert")
-	cmd := exec.Command(pathToExecutable, "--destructive", packageToRewrite)
-	err = cmd.Run()
-	Expect(err).NotTo(HaveOccurred())
 
-	return
+	pathToExecutable := filepath.Join(cwd, "bin", "ginkgo-convert")
+	cmd := exec.Command(pathToExecutable, args...)
+	Expect(cmd.Run()).NotTo(HaveOccurred())
 }
