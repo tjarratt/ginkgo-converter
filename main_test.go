@@ -21,7 +21,7 @@ func init() {
 		AfterEach(killAllConvertedGinkgoTests)
 
 		It("rewrites xunit tests as ginkgo tests", func() {
-			runGinkgoConvert("github.com/tjarratt/ginkgo-convert/fixtures")
+			runGinkgoConvert("--create-suite=false", "github.com/tjarratt/ginkgo-convert/fixtures")
 
 			cwd, err := os.Getwd()
 			Expect(err).NotTo(HaveOccurred())
@@ -35,7 +35,7 @@ func init() {
 		})
 
 		It("rewrites all tests in your package", func() {
-			runGinkgoConvert("github.com/tjarratt/ginkgo-convert/fixtures")
+			runGinkgoConvert("--create-suite=false", "github.com/tjarratt/ginkgo-convert/fixtures")
 
 			cwd, err := os.Getwd()
 			Expect(err).NotTo(HaveOccurred())
@@ -59,8 +59,7 @@ func init() {
 				err = ioutil.WriteFile(filepath.Join(dir, "overwrite_test.go"), bytes, 0666)
 				Expect(err).NotTo(HaveOccurred())
 
-
-				runGinkgoConvert("--destructive", "github.com/tjarratt/ginkgo-convert/fixtures/overwrite")
+				runGinkgoConvert("--create-suite=false", "--destructive", "github.com/tjarratt/ginkgo-convert/fixtures/overwrite")
 
 				expected, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "simple_test_goldmaster.go"))
 				Expect(err).NotTo(HaveOccurred())
@@ -68,6 +67,28 @@ func init() {
 				converted, err := ioutil.ReadFile(filepath.Join(dir, "overwrite_test.go"))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(converted)).To(Equal(string(expected)))
+			})
+		})
+
+		It("creates a ginkgo test suite file when provided", func() {
+			withTempDir("creates_suites", func(dir string) {
+				cwd, err := os.Getwd()
+				Expect(err).NotTo(HaveOccurred())
+
+				bytes, err := ioutil.ReadFile(filepath.Join(cwd, "fixtures", "xunit_test.go"))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = ioutil.WriteFile(filepath.Join(dir, "creates_suite_test.go"), bytes, 0666)
+				Expect(err).NotTo(HaveOccurred())
+
+				runGinkgoConvert("github.com/tjarratt/ginkgo-convert/fixtures/creates_suites")
+
+				expected, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "test_suite_goldmaster.go"))
+				Expect(err).NotTo(HaveOccurred())
+
+				testSuite, err := ioutil.ReadFile(filepath.Join(dir, "creates_suites_suite_test.go"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(testSuite)).To(Equal(string(expected)))
 			})
 		})
 	})
@@ -143,5 +164,6 @@ func runGinkgoConvert(args ...string) {
 
 	pathToExecutable := filepath.Join(cwd, "bin", "ginkgo-convert")
 	cmd := exec.Command(pathToExecutable, args...)
-	Expect(cmd.Run()).NotTo(HaveOccurred())
+	err = cmd.Run()
+	Expect(err).NotTo(HaveOccurred())
 }

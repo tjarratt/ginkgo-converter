@@ -12,17 +12,23 @@ import (
 	"go/token"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 var overwriteFlag = flag.Bool("destructive", false, "rewrite tests in-place")
-var shouldOverride bool
+var createSuiteFlag = flag.Bool("create-suite", true, "creates a ginkgo suite file")
+var (
+	shouldOverride bool
+	shouldCreateSuite bool
+)
 
 func main() {
 	flag.Parse()
 	shouldOverride = *overwriteFlag
+	shouldCreateSuite = *createSuiteFlag
 
 	if len(flag.Args()) != 1 {
 		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go --destructive=(true|false)", os.Args[0]))
@@ -42,6 +48,40 @@ func main() {
 		if err != nil {
 			panic(err.Error())
 		}
+	}
+
+	pkg, err := build.Default.Import(flag.Args()[0], ".", build.ImportMode(0))
+	if err != nil {
+		panic(err)
+	}
+
+	if shouldCreateSuite {
+		addGinkgoSuiteFile(pkg.Dir)
+	}
+}
+
+func addGinkgoSuiteFile(pathToPackage string) {
+	originalDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	println("cd'ing to", pathToPackage)
+	err = os.Chdir(pathToPackage)
+	if err != nil {
+		panic(err)
+	}
+
+	cmd := exec.Command("ginkgo", "bootstrap")
+	err = cmd.Run()
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	err = os.Chdir(originalDir)
+	if err != nil {
+		panic(err)
 	}
 }
 
