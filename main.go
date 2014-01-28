@@ -18,17 +18,11 @@ import (
 	"strings"
 )
 
-var overwriteFlag = flag.Bool("destructive", false, "rewrite tests in-place")
-var createSuiteFlag = flag.Bool("create-suite", true, "creates a ginkgo suite file")
-var (
-	shouldOverride bool
-	shouldCreateSuite bool
-)
+var shouldOverwriteTests = flag.Bool("destructive", false, "rewrite tests in-place")
+var shouldCreateTestSuite = flag.Bool("create-suite", true, "creates a ginkgo suite file")
 
 func main() {
 	flag.Parse()
-	shouldOverride = *overwriteFlag
-	shouldCreateSuite = *createSuiteFlag
 
 	if len(flag.Args()) != 1 {
 		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go --destructive=(true|false)", os.Args[0]))
@@ -55,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	if shouldCreateSuite {
+	if *shouldCreateTestSuite {
 		addGinkgoSuiteFile(pkg.Dir)
 	}
 }
@@ -145,7 +139,7 @@ func findTestsInFile(pathToFile string) (err error) {
 	}
 
 	var fileToWrite string
-	if shouldOverride {
+	if *shouldOverwriteTests {
 		fileToWrite = pathToFile
 	} else {
 		fileToWrite = strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
