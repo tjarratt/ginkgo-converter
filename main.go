@@ -32,7 +32,7 @@ func main() {
 
 	testFiles, err := findTestsForPackage(flag.Args()[0])
 	if err != nil {
-		fmt.Printf("unexpected error reading package: %s\n%s\n", flag.Args()[0], err.Error())
+		fmt.Printf("unexpected error reading package: '%s'\n%s\n", flag.Args()[0], err.Error())
 		os.Exit(1)
 	}
 
@@ -60,7 +60,6 @@ func addGinkgoSuiteFile(pathToPackage string) {
 		panic(err)
 	}
 
-	println("cd'ing to", pathToPackage)
 	err = os.Chdir(pathToPackage)
 	if err != nil {
 		panic(err)
