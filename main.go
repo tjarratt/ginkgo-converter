@@ -84,7 +84,7 @@ func findTestsForPackage(packageName string) (tests []string, err error) {
 		return
 	}
 
-	for _, file := range pkg.TestGoFiles {
+	for _, file := range append(pkg.TestGoFiles, pkg.XTestGoFiles...) {
 		tests = append(tests, filepath.Join(pkg.Dir, file))
 	}
 
