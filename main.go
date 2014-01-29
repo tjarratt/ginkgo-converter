@@ -286,7 +286,7 @@ func addGinkgoImports(rootNode *ast.File) {
 		panic("unimplemented : expected to find an imports block")
 	}
 
-	needsGinkgo, needsGomega := true, true
+	needsGinkgo, needsGomega, needsMerf := true, true, true
 	for _, importSpec := range importDecl.Specs {
 		importSpec, ok := importSpec.(*ast.ImportSpec)
 		if !ok {
@@ -297,6 +297,8 @@ func addGinkgoImports(rootNode *ast.File) {
 			needsGinkgo = false
 		} else if importSpec.Path.Value == "\"github.com/onsi/gomega\"" {
 			needsGomega = false
+		} else if importSpec.Path.Value == "\"github.com/tjarratt/merf\"" {
+			needsMerf = false
 		}
 	}
 
@@ -308,6 +310,11 @@ func addGinkgoImports(rootNode *ast.File) {
 	if needsGomega {
 		importGomega := createImport("\"github.com/onsi/gomega\"")
 		importDecl.Specs = append(importDecl.Specs, importGomega)
+	}
+
+	if needsMerf {
+		importMerf := createImport("\"github.com/tjarratt/merf\"")
+		importDecl.Specs = append(importDecl.Specs, importMerf)
 	}
 }
 

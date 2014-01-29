@@ -3,6 +3,7 @@ package nested
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/tjarratt/merf"
 )
 
 func init() {
