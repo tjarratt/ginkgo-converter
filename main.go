@@ -180,10 +180,9 @@ func findTestFuncs(rootNode *ast.File) (testsToRewrite []*ast.FuncDecl) {
 
 		switch node := node.(type) {
 		case *ast.FuncDecl:
-			funcName := node.Name.Name
-			// FIXME: also look at the params for this func
-			matches := testNameRegexp.MatchString(funcName)
-			if matches {
+			matches := testNameRegexp.MatchString(node.Name.Name)
+
+			if matches && receivesTestingT(node) {
 				testsToRewrite = append(testsToRewrite, node)
 			}
 		}
@@ -192,6 +191,26 @@ func findTestFuncs(rootNode *ast.File) (testsToRewrite []*ast.FuncDecl) {
 	})
 
 	return
+}
+
+// name is on field.Name.Name
+// type is on field.Type.X.X.Name + "." + field.Type.X.Sel.Name
+func receivesTestingT(node *ast.FuncDecl) bool {
+	if len(node.Type.Params.List) != 1 {
+		return false
+	}
+
+	// (node.Type.Params.List[0].Names[0].Name == "t") => the name of the testingT arg
+	base, ok := node.Type.Params.List[0].Type.(*ast.StarExpr)
+	if !ok {
+		return false
+	}
+
+	intermediate := base.X.(*ast.SelectorExpr)
+	isTestingPackage := intermediate.X.(*ast.Ident).Name == "testing"
+	isTestingT := intermediate.Sel.Name == "T"
+
+	return isTestingPackage && isTestingT
 }
 
 func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *ast.ExprStmt) {
@@ -220,6 +239,8 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *a
 
 	var block *ast.BlockStmt = blockStatementFromDescribe(describe)
 	block.List = append(block.List, expressionStatement)
+
+	// remove the old test func from the root node
 	rootNode.Decls = append(rootNode.Decls[:funcIndex], rootNode.Decls[funcIndex+1:]...)
 
 	return
