@@ -262,10 +262,29 @@ func replaceTestingTsInArgsLists(callExpr *ast.CallExpr, testingT string) {
 	}
 }
 
+func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string) {
+	ident, ok := kve.Value.(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	kve.Value = &ast.CallExpr{
+		Lparen: ident.NamePos + 1,
+		Rparen: ident.NamePos + 2,
+		Fun: &ast.Ident{Name: "T"},
+	}
+}
+
 func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 	ast.Inspect(statementsBlock, func(node ast.Node) bool {
 		if node == nil {
 			return false
+		}
+
+		keyValueExpr, ok := node.(*ast.KeyValueExpr)
+		if ok {
+			replaceTestingTsInKeyValueExpression(keyValueExpr, testingT)
+			return true
 		}
 
 		callExpr, ok := node.(*ast.CallExpr)
