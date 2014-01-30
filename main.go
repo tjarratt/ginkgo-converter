@@ -139,14 +139,23 @@ func findTestsInFile(pathToFile string) (err error) {
 	}
 
 	var fileToWrite string
+	var mode os.FileMode
 	if *shouldOverwriteTests {
 		fileToWrite = pathToFile
+
+		var fileInfo os.FileInfo
+		fileInfo, err = os.Stat(pathToFile)
+		if err != nil {
+			return
+		}
+
+		mode = fileInfo.Mode()
 	} else {
 		fileToWrite = strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
+		mode = 0644
 	}
 
-	// TODO: write this out with the same file permissions
-	ioutil.WriteFile(fileToWrite, buffer.Bytes(), 0666)
+	ioutil.WriteFile(fileToWrite, buffer.Bytes(), mode)
 	return
 }
 
