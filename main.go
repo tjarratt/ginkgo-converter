@@ -229,19 +229,15 @@ func namedTestingTArg(node *ast.FuncDecl) string {
 }
 
 func replaceTestingTsMethodCalls(selectorExpr *ast.SelectorExpr, testingT string) {
-	funcTargetIdent, ok := selectorExpr.X.(*ast.Ident)
+	ident, ok := selectorExpr.X.(*ast.Ident)
 	if !ok {
 		return
 	}
 
 	// fix t.Fail() or any other *testing.T method calls
 	// by replacing with T().Fail()
-	if funcTargetIdent.Name == testingT {
-		selectorExpr.X = &ast.CallExpr{
-  		Lparen: funcTargetIdent.NamePos + 1,
-			Rparen: funcTargetIdent.NamePos + 2,
-			Fun: &ast.Ident{Name: "T"},
-		}
+	if ident.Name == testingT {
+		selectorExpr.X = newMrTFromIdent(ident)
 	}
 }
 
@@ -253,12 +249,16 @@ func replaceTestingTsInArgsLists(callExpr *ast.CallExpr, testingT string) {
 		}
 
 		if ident.Name == testingT {
-			callExpr.Args[index] = &ast.CallExpr{
-				Lparen: ident.NamePos + 1,
-				Rparen: ident.NamePos + 2,
-				Fun: &ast.Ident{Name: "T"},
-			}
+			callExpr.Args[index] = newMrTFromIdent(ident)
 		}
+	}
+}
+
+func newMrTFromIdent(ident *ast.Ident) *ast.CallExpr {
+	return &ast.CallExpr{
+		Lparen: ident.NamePos + 1,
+		Rparen: ident.NamePos + 2,
+		Fun: &ast.Ident{Name: "T"},
 	}
 }
 
@@ -268,11 +268,7 @@ func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string
 		return
 	}
 
-	kve.Value = &ast.CallExpr{
-		Lparen: ident.NamePos + 1,
-		Rparen: ident.NamePos + 2,
-		Fun: &ast.Ident{Name: "T"},
-	}
+	kve.Value = newMrTFromIdent(ident)
 }
 
 func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
@@ -300,17 +296,13 @@ func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 		}
 
 		for index, arg := range callExpr.Args {
-			identArg, ok := arg.(*ast.Ident)
+			ident, ok := arg.(*ast.Ident)
 			if !ok {
 				return true
 			}
 
-			if identArg.Name == testingT {
-				callExpr.Args[index] = &ast.CallExpr{
-  				Lparen: identArg.NamePos + 1,
-					Rparen: identArg.NamePos + 2,
-					Fun:  &ast.Ident{Name: "T"},
-				}
+			if ident.Name == testingT {
+				callExpr.Args[index] = newMrTFromIdent(ident)
 			}
 		}
 
