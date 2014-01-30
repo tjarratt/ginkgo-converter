@@ -2,8 +2,7 @@ package fixtures_test
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/tjarratt/merf"
+	. "github.com/tjarratt/mr_t"
 )
 
 type UselessStruct struct {
@@ -15,7 +14,7 @@ func init() {
 		It("TestSomethingImportant", func() {
 
 			whatever := &UselessStruct{}
-			t.Fail(whatever.ImportantField != "SECRET_PASSWORD")
+			T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
 		})
 	})
 }

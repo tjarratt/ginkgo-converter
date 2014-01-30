@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -65,6 +64,7 @@ func addGinkgoSuiteFile(pathToPackage string) {
 		panic(err)
 	}
 
+	// FIXME : don't do this if we already have a test suite file
 	cmd := exec.Command("ginkgo", "bootstrap")
 	err = cmd.Run()
 
@@ -130,6 +130,7 @@ func findTestsInFile(pathToFile string) (err error) {
 	}
 
 	rootNode.Decls = append(rootNode.Decls, topLevelInitFunc)
+	rewriteOtherFuncsToUseMrT(rootNode.Decls)
 
 	var buffer bytes.Buffer
 	if err = format.Node(&buffer, fileSet, rootNode); err != nil {
@@ -144,6 +145,7 @@ func findTestsInFile(pathToFile string) (err error) {
 		fileToWrite = strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
 	}
 
+	// TODO: write this out with the same file permissions
 	ioutil.WriteFile(fileToWrite, buffer.Bytes(), 0666)
 	return
 }
@@ -213,6 +215,63 @@ func receivesTestingT(node *ast.FuncDecl) bool {
 	return isTestingPackage && isTestingT
 }
 
+func namedTestingTArg(node *ast.FuncDecl) string {
+	return node.Type.Params.List[0].Names[0].Name // *exhale*
+}
+
+func replaceTestingTsInsideFuncParams(selectorExpr *ast.SelectorExpr, testingT string) {
+	funcTargetIdent, ok := selectorExpr.X.(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	// fix t.Fail() or any other *testing.T method calls
+	// by replacing with T().Fail()
+	if funcTargetIdent.Name == testingT {
+		selectorExpr.X = &ast.CallExpr{
+  		Lparen: funcTargetIdent.NamePos + 1,
+			Rparen: funcTargetIdent.NamePos + 2,
+			Fun: &ast.Ident{Name: "T"},
+		}
+		return
+	}
+}
+
+func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
+	ast.Inspect(statementsBlock, func(node ast.Node) bool {
+		if node == nil {
+			return false
+		}
+
+		callExpr, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+
+		funCall, ok := callExpr.Fun.(*ast.SelectorExpr)
+		if ok {
+			replaceTestingTsInsideFuncParams(funCall, testingT)
+			return true
+		}
+
+		for index, arg := range callExpr.Args {
+			identArg, ok := arg.(*ast.Ident)
+			if !ok {
+				return true
+			}
+
+			if identArg.Name == testingT {
+				callExpr.Args[index] = &ast.CallExpr{
+					Args: []ast.Expr{},
+					Fun:  &ast.Ident{Name: "T", Obj: nil},
+				}
+			}
+		}
+
+		return true
+	})
+}
+
 func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *ast.ExprStmt) {
 	var funcIndex int = -1
 	for index, child := range rootNode.Decls {
@@ -239,6 +298,7 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *a
 
 	var block *ast.BlockStmt = blockStatementFromDescribe(describe)
 	block.List = append(block.List, expressionStatement)
+	replaceTestingTsWithMrT(block, namedTestingTArg(testFunc))
 
 	// remove the old test func from the root node
 	rootNode.Decls = append(rootNode.Decls[:funcIndex], rootNode.Decls[funcIndex+1:]...)
@@ -260,88 +320,34 @@ func blockStatementFromDescribe(desc *ast.ExprStmt) *ast.BlockStmt {
 	return funcLit.Body
 }
 
-func importsForRootNode(rootNode *ast.File) (imports *ast.GenDecl, err error) {
-	for _, declaration := range rootNode.Decls {
-		decl, ok := declaration.(*ast.GenDecl)
-		if !ok || len(decl.Specs) == 0 {
-			continue
-		}
-
-		_, ok = decl.Specs[0].(*ast.ImportSpec)
-		if ok {
-			imports = decl
-			return
-		}
-	}
-
-	err = errors.New(fmt.Sprintf("Could not find imports for root node:\n\t%#v\n", rootNode))
-	return
-}
-
-func removeTestingImport(rootNode *ast.File) {
-	importDecl, err := importsForRootNode(rootNode)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var index int
-	for i, importSpec := range importDecl.Specs {
-		importSpec := importSpec.(*ast.ImportSpec)
-		if importSpec.Path.Value == "\"testing\"" {
-			index = i
-			break
-		}
-	}
-
-	importDecl.Specs = append(importDecl.Specs[:index], importDecl.Specs[index+1:]...)
-}
-
-func addGinkgoImports(rootNode *ast.File) {
-	importDecl, err := importsForRootNode(rootNode)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	if len(importDecl.Specs) == 0 {
-		// TODO: might need to create a import decl here
-		panic("unimplemented : expected to find an imports block")
-	}
-
-	needsGinkgo, needsGomega, needsMerf := true, true, true
-	for _, importSpec := range importDecl.Specs {
-		importSpec, ok := importSpec.(*ast.ImportSpec)
+func rewriteOtherFuncsToUseMrT(declarations []ast.Decl) {
+	for _, decl := range declarations {
+		decl, ok := decl.(*ast.FuncDecl)
 		if !ok {
 			continue
 		}
 
-		if importSpec.Path.Value == "\"github.com/onsi/ginkgo\"" {
-			needsGinkgo = false
-		} else if importSpec.Path.Value == "\"github.com/onsi/gomega\"" {
-			needsGomega = false
-		} else if importSpec.Path.Value == "\"github.com/tjarratt/merf\"" {
-			needsMerf = false
+		for _, param := range decl.Type.Params.List {
+			starExpr, ok := param.Type.(*ast.StarExpr)
+			if !ok {
+				continue
+			}
+
+			selectorExpr, ok := starExpr.X.(*ast.SelectorExpr)
+			if !ok {
+				continue
+			}
+
+			xIdent, ok := selectorExpr.X.(*ast.Ident)
+			if !ok || xIdent.Name != "testing" {
+				continue
+			}
+
+			if selectorExpr.Sel.Name != "T" {
+				continue
+			}
+
+			param.Type = &ast.Ident{Name: "TestingT"}
 		}
-	}
-
-	if needsGinkgo {
-		importGinkgo := createImport("\"github.com/onsi/ginkgo\"")
-		importDecl.Specs = append(importDecl.Specs, importGinkgo)
-	}
-
-	if needsGomega {
-		importGomega := createImport("\"github.com/onsi/gomega\"")
-		importDecl.Specs = append(importDecl.Specs, importGomega)
-	}
-
-	if needsMerf {
-		importMerf := createImport("\"github.com/tjarratt/merf\"")
-		importDecl.Specs = append(importDecl.Specs, importMerf)
-	}
-}
-
-func createImport(path string) *ast.ImportSpec {
-	return &ast.ImportSpec{
-		Name: &ast.Ident{Name: "."},
-		Path: &ast.BasicLit{Kind: 9, Value: path},
 	}
 }

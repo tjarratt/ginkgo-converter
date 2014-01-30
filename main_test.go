@@ -34,6 +34,20 @@ func init() {
 			Expect(string(convertedFile)).To(Equal(string(goldMaster)))
 		})
 
+		It("rewrites all usages of *testing.T as mr.T()", func() {
+			runGinkgoConvert("--create-suite=false", "github.com/tjarratt/ginkgo-convert/fixtures")
+
+			cwd, err := os.Getwd()
+			Expect(err).NotTo(HaveOccurred())
+			pathToFile := filepath.Join(cwd, "fixtures", "extra_functions_ginkgo_test.go")
+			convertedFile, err := ioutil.ReadFile(pathToFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			goldMaster, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "extra_functions.go"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(convertedFile)).To(Equal(string(goldMaster)))
+		})
+
 		It("rewrites tests in your package dir, in the 'xxx_test package'", func() {
 			runGinkgoConvert("--create-suite=false", "github.com/tjarratt/ginkgo-convert/fixtures")
 
