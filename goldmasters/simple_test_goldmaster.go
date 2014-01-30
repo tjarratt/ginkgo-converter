@@ -20,6 +20,8 @@ func init() {
 			}
 			T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
 			assert.Equal(T(), whatever.ImportantField, "SECRET_PASSWORD")
+			var foo = func(t TestingT) {}
+			foo()
 		})
 	})
 }

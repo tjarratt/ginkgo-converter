@@ -271,6 +271,29 @@ func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string
 	kve.Value = newMrTFromIdent(ident)
 }
 
+func replaceTestingTsInFuncLiteral(functionLiteral *ast.FuncLit, testingT string) {
+	for _, arg := range functionLiteral.Type.Params.List {
+		starExpr, ok := arg.Type.(*ast.StarExpr)
+		if !ok {
+			continue
+		}
+
+		selectorExpr, ok := starExpr.X.(*ast.SelectorExpr)
+		if !ok {
+			continue
+		}
+
+		target, ok := selectorExpr.X.(*ast.Ident)
+		if !ok {
+			continue
+		}
+
+		if target.Name == "testing" && selectorExpr.Sel.Name == "T" {
+			arg.Type = &ast.Ident{Name: "TestingT"}
+		}
+	}
+}
+
 func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 	ast.Inspect(statementsBlock, func(node ast.Node) bool {
 		if node == nil {
@@ -282,6 +305,13 @@ func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 			replaceTestingTsInKeyValueExpression(keyValueExpr, testingT)
 			return true
 		}
+
+		funcLiteral, ok := node.(*ast.FuncLit)
+		if ok {
+			replaceTestingTsInFuncLiteral(funcLiteral, testingT)
+			return true
+		}
+
 
 		callExpr, ok := node.(*ast.CallExpr)
 		if !ok {

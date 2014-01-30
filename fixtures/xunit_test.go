@@ -16,4 +16,6 @@ func TestSomethingImportant(t *testing.T) {
 	}
 	t.Fail(whatever.ImportantField != "SECRET_PASSWORD")
 	assert.Equal(t, whatever.ImportantField, "SECRET_PASSWORD")
+	var foo = func(t *testing.T) {}
+	foo()
 }
