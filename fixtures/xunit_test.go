@@ -11,4 +11,5 @@ type UselessStruct struct {
 func TestSomethingImportant(t *testing.T) {
 	whatever := &UselessStruct{}
 	t.Fail(whatever.ImportantField != "SECRET_PASSWORD")
+	assert.Equal(t, whatever.ImportantField, "SECRET_PASSWORD")
 }

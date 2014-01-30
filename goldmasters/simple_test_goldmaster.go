@@ -15,6 +15,7 @@ func init() {
 
 			whatever := &UselessStruct{}
 			T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
+			assert.Equal(T(), whatever.ImportantField, "SECRET_PASSWORD")
 		})
 	})
 }

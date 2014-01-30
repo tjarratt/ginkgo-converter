@@ -228,7 +228,7 @@ func namedTestingTArg(node *ast.FuncDecl) string {
 	return node.Type.Params.List[0].Names[0].Name // *exhale*
 }
 
-func replaceTestingTsInsideFuncParams(selectorExpr *ast.SelectorExpr, testingT string) {
+func replaceTestingTsMethodCalls(selectorExpr *ast.SelectorExpr, testingT string) {
 	funcTargetIdent, ok := selectorExpr.X.(*ast.Ident)
 	if !ok {
 		return
@@ -242,7 +242,23 @@ func replaceTestingTsInsideFuncParams(selectorExpr *ast.SelectorExpr, testingT s
 			Rparen: funcTargetIdent.NamePos + 2,
 			Fun: &ast.Ident{Name: "T"},
 		}
-		return
+	}
+}
+
+func replaceTestingTsInArgsLists(callExpr *ast.CallExpr, testingT string) {
+	for index, arg := range callExpr.Args {
+		ident, ok := arg.(*ast.Ident)
+		if !ok {
+			continue
+		}
+
+		if ident.Name == testingT {
+			callExpr.Args[index] = &ast.CallExpr{
+				Lparen: ident.NamePos + 1,
+				Rparen: ident.NamePos + 2,
+				Fun: &ast.Ident{Name: "T"},
+			}
+		}
 	}
 }
 
@@ -259,7 +275,8 @@ func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 
 		funCall, ok := callExpr.Fun.(*ast.SelectorExpr)
 		if ok {
-			replaceTestingTsInsideFuncParams(funCall, testingT)
+			replaceTestingTsMethodCalls(funCall, testingT)
+			replaceTestingTsInArgsLists(callExpr, testingT)
 			return true
 		}
 
@@ -271,8 +288,9 @@ func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 
 			if identArg.Name == testingT {
 				callExpr.Args[index] = &ast.CallExpr{
-					Args: []ast.Expr{},
-					Fun:  &ast.Ident{Name: "T", Obj: nil},
+  				Lparen: identArg.NamePos + 1,
+					Rparen: identArg.NamePos + 2,
+					Fun:  &ast.Ident{Name: "T"},
 				}
 			}
 		}
