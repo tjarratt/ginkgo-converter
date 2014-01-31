@@ -22,7 +22,7 @@ func init() {
 			something := &UselessStruct{ImportantField: app}
 			mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
 			assert.Equal(mr.T(), whatever.ImportantField, "SECRET_PASSWORD")
-			var foo = func(t TestingT) {}
+			var foo = func(t mr.TestingT) {}
 			foo()
 		})
 	})

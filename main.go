@@ -294,7 +294,10 @@ func replaceTestingTsInFuncLiteral(functionLiteral *ast.FuncLit, testingT string
 		}
 
 		if target.Name == "testing" && selectorExpr.Sel.Name == "T" {
-			arg.Type = &ast.Ident{Name: "TestingT"}
+			arg.Type = &ast.SelectorExpr{
+				X: &ast.Ident{Name: "mr"},
+				Sel: &ast.Ident{Name: "TestingT"},
+			}
 		}
 	}
 }
@@ -420,7 +423,10 @@ func rewriteOtherFuncsToUseMrT(declarations []ast.Decl) {
 				continue
 			}
 
-			param.Type = &ast.Ident{Name: "TestingT"}
+			param.Type = &ast.SelectorExpr{
+				X: &ast.Ident{Name: "mr"},
+				Sel: &ast.Ident{Name: "TestingT"},
+			}
 		}
 	}
 }
