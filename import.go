@@ -68,17 +68,17 @@ func addGinkgoImports(rootNode *ast.File) {
 	}
 
 	if needsGinkgo {
-		importDecl.Specs = append(importDecl.Specs, createImport("\"github.com/onsi/ginkgo\""))
+		importDecl.Specs = append(importDecl.Specs, createImport(".", "\"github.com/onsi/ginkgo\""))
 	}
 
 	if needsMrT {
-		importDecl.Specs = append(importDecl.Specs, createImport("\"github.com/tjarratt/mr_t\""))
+		importDecl.Specs = append(importDecl.Specs, createImport("mr", "\"github.com/tjarratt/mr_t\""))
 	}
 }
 
-func createImport(path string) *ast.ImportSpec {
+func createImport(name, path string) *ast.ImportSpec {
 	return &ast.ImportSpec{
-		Name: &ast.Ident{Name: "."},
+		Name: &ast.Ident{Name: name},
 		Path: &ast.BasicLit{Kind: 9, Value: path},
 	}
 }

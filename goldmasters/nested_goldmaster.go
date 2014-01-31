@@ -2,7 +2,7 @@ package nested
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/tjarratt/mr_t"
+	mr "github.com/tjarratt/mr_t"
 )
 
 func init() {
@@ -10,7 +10,7 @@ func init() {
 		It("TestSomethingLessImportant", func() {
 
 			whatever := &UselessStruct{}
-			T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
+			mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
 		})
 	})
 }

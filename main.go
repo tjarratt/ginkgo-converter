@@ -258,7 +258,10 @@ func newMrTFromIdent(ident *ast.Ident) *ast.CallExpr {
 	return &ast.CallExpr{
 		Lparen: ident.NamePos + 1,
 		Rparen: ident.NamePos + 2,
-		Fun: &ast.Ident{Name: "T"},
+    Fun: &ast.SelectorExpr{
+			X: &ast.Ident{Name: "mr"},
+			Sel: &ast.Ident{Name: "T"},
+		},
 	}
 }
 

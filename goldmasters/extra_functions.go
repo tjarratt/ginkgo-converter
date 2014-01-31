@@ -2,7 +2,7 @@ package fixtures
 
 import (
 	. "github.com/onsi/ginkgo"
-	. "github.com/tjarratt/mr_t"
+	mr "github.com/tjarratt/mr_t"
 )
 
 func somethingImportant(t TestingT, message *string) {
@@ -11,7 +11,7 @@ func somethingImportant(t TestingT, message *string) {
 func init() {
 	Describe("Testing with ginkgo", func() {
 		It("TestSomethingLessImportant", func() {
-			somethingImportant(T(), &"hello!")
+			somethingImportant(mr.T(), &"hello!")
 		})
 	})
 }
