@@ -18,6 +18,8 @@ func init() {
 				T:              mr.T(),
 				ImportantField: "twisty maze of passages",
 			}
+			app := "string value"
+			something := &UselessStruct{ImportantField: app}
 			mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
 			assert.Equal(mr.T(), whatever.ImportantField, "SECRET_PASSWORD")
 			var foo = func(t TestingT) {}

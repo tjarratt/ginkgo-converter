@@ -271,7 +271,9 @@ func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string
 		return
 	}
 
-	kve.Value = newMrTFromIdent(ident)
+	if ident.Name == testingT {
+		kve.Value = newMrTFromIdent(ident)
+	}
 }
 
 func replaceTestingTsInFuncLiteral(functionLiteral *ast.FuncLit, testingT string) {
