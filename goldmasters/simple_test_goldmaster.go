@@ -7,8 +7,10 @@ import (
 
 type UselessStruct struct {
 	ImportantField string
-	T              *testing.T
+	T              mr.TestingT
 }
+
+var testFunc = func(t mr.TestingT, arg *string) { }
 
 func init() {
 	Describe("Testing with ginkgo", func() {
@@ -24,6 +26,7 @@ func init() {
 			assert.Equal(mr.T(), whatever.ImportantField, "SECRET_PASSWORD")
 			var foo = func(t mr.TestingT) {}
 			foo()
+			testFunc(mr.T(), "something")
 		})
 	})
 }

@@ -9,6 +9,8 @@ type UselessStruct struct {
 	T              *testing.T
 }
 
+var testFunc = func(t *testing.T, arg *string) { }
+
 func TestSomethingImportant(t *testing.T) {
 	whatever := &UselessStruct{
 		T:            t,
@@ -21,4 +23,5 @@ func TestSomethingImportant(t *testing.T) {
 	assert.Equal(t, whatever.ImportantField, "SECRET_PASSWORD")
 	var foo = func(t *testing.T) {}
 	foo()
+	testFunc(t, "something")
 }
