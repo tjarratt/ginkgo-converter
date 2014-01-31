@@ -10,7 +10,7 @@ type UselessStruct struct {
 	T              mr.TestingT
 }
 
-var testFunc = func(t mr.TestingT, arg *string) { }
+var testFunc = func(t mr.TestingT, arg *string) {}
 
 func init() {
 	Describe("Testing with ginkgo", func() {

@@ -68,6 +68,7 @@ func findTestsInFile(pathToFile string) (err error) {
 
 	rootNode.Decls = append(rootNode.Decls, topLevelInitFunc)
 	rewriteOtherFuncsToUseMrT(rootNode.Decls)
+	walkNodesInRootNodeReplacingTestingT(rootNode)
 
 	var buffer bytes.Buffer
 	if err = format.Node(&buffer, fileSet, rootNode); err != nil {
@@ -191,6 +192,23 @@ func blockStatementFromDescribe(desc *ast.ExprStmt) *ast.BlockStmt {
 	return funcLit.Body
 }
 
+func walkNodesInRootNodeReplacingTestingT(rootNode *ast.File) {
+	ast.Inspect(rootNode, func(node ast.Node) bool {
+		if node == nil {
+			return false
+		}
+
+		switch node := node.(type) {
+		case *ast.StructType:
+			replaceTestingTsInStructType(node)
+		case *ast.FuncLit:
+			replaceTypeDeclTestingTsInFuncLiteral(node)
+		}
+
+		return true
+	})
+}
+
 func rewriteOtherFuncsToUseMrT(declarations []ast.Decl) {
 	for _, decl := range declarations {
 		decl, ok := decl.(*ast.FuncDecl)
@@ -236,7 +254,7 @@ func replaceTestingTsInArgsLists(callExpr *ast.CallExpr, testingT string) {
 	}
 }
 
-func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string) {
+func replaceNamedTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string) {
 	ident, ok := kve.Value.(*ast.Ident)
 	if !ok {
 		return
@@ -246,6 +264,7 @@ func replaceTestingTsInKeyValueExpression(kve *ast.KeyValueExpr, testingT string
 		kve.Value = newMrTFromIdent(ident)
 	}
 }
+
 
 func replaceTypeDeclTestingTsInFuncLiteral(functionLiteral *ast.FuncLit) {
 	for _, arg := range functionLiteral.Type.Params.List {
@@ -270,6 +289,29 @@ func replaceTypeDeclTestingTsInFuncLiteral(functionLiteral *ast.FuncLit) {
 	}
 }
 
+func replaceTestingTsInStructType(structType *ast.StructType) {
+	for _, field := range structType.Fields.List {
+		starExpr, ok := field.Type.(*ast.StarExpr)
+		if !ok {
+			continue
+		}
+
+		selectorExpr, ok := starExpr.X.(*ast.SelectorExpr)
+		if !ok {
+			continue
+		}
+
+		xIdent, ok := selectorExpr.X.(*ast.Ident)
+		if !ok {
+			continue
+		}
+
+		if xIdent.Name == "testing" && selectorExpr.Sel.Name == "T" {
+			field.Type = newMrTestingT()
+		}
+	}
+}
+
 func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 	ast.Inspect(statementsBlock, func(node ast.Node) bool {
 		if node == nil {
@@ -278,7 +320,7 @@ func replaceTestingTsWithMrT(statementsBlock *ast.BlockStmt, testingT string) {
 
 		keyValueExpr, ok := node.(*ast.KeyValueExpr)
 		if ok {
-			replaceTestingTsInKeyValueExpression(keyValueExpr, testingT)
+			replaceNamedTestingTsInKeyValueExpression(keyValueExpr, testingT)
 			return true
 		}
 
