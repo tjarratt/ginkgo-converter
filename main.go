@@ -11,18 +11,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	testFiles, err := RewritePackage(os.Args[1])
-	if err != nil {
-		fmt.Printf("unexpected error reading package: '%s'\n%s\n", os.Args[1], err.Error())
-		os.Exit(1)
-	}
-
-	for _, filename := range testFiles {
-		err := RewriteTestsInFile(filename)
-
+	defer func() {
+		err := recover()
 		if err != nil {
-			fmt.Printf("unexpected error rewriting tests in file: %s\n%s", filename, err.Error())
+			switch err := err.(type) {
+			case error:
+				println(err.Error())
+			case string:
+				println(err)
+			default:
+				println(fmt.Sprintf("unexpected error: %#v", err))
+			}
 			os.Exit(1)
 		}
-	}
+	}()
+
+	RewritePackage(os.Args[1])
 }
