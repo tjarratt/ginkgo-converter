@@ -40,7 +40,7 @@ func init() {
 				convertedFile := readConvertedFileNamed(tempDir, "outside_package_test.go")
 				goldMaster := readGoldMasterNamed("outside_package_test.go")
 				Expect(convertedFile).To(Equal(goldMaster))
-		  })
+			})
 		})
 
 		It("rewrites tests in nested packages", func() {
@@ -75,7 +75,7 @@ func init() {
 			})
 
 			It("gracefully handles existing test suite files", func() {
-				withTempDir(func (dir string) {
+				withTempDir(func(dir string) {
 					cwd, err := os.Getwd()
 					bytes, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "fixtures_suite_test.go"))
 					Expect(err).NotTo(HaveOccurred())
@@ -165,6 +165,6 @@ func deleteFilesInTmp() {
 	Expect(err).NotTo(HaveOccurred())
 	tempDir := filepath.Join(cwd, "tmp")
 
- 	err = os.RemoveAll(tempDir)
- 	Expect(err).NotTo(HaveOccurred())
+	err = os.RemoveAll(tempDir)
+	Expect(err).NotTo(HaveOccurred())
 }
