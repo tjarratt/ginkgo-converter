@@ -1,4 +1,4 @@
-package creates_suites_test
+package tmp_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCreates_suites(t *testing.T) {
+func TestTmp(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Creates_suites Suite")
+	RunSpecs(t, "Tmp Suite")
 }

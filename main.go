@@ -7,15 +7,11 @@ import (
 	"os"
 )
 
-var shouldOverwriteTests = flag.Bool("destructive", false, "rewrite tests in-place")
-var shouldCreateTestSuite = flag.Bool("create-suite", true, "creates a ginkgo suite file")
-
 func main() {
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
-		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go --destructive=(true|false)", os.Args[0]))
-		println("\n--destructive indicates that you want to update your tests in-place, and can possibly lead to data loss if your tests are not committed to version control (or otherwise backed up)")
+		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
 		os.Exit(1)
 	}
 
@@ -38,7 +34,5 @@ func main() {
 		panic(err)
 	}
 
-	if *shouldCreateTestSuite {
-		addGinkgoSuiteFile(pkg.Dir)
-	}
+	addGinkgoSuiteFile(pkg.Dir)
 }

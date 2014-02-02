@@ -2,3 +2,4 @@ debug/*
 pkg
 bin/ginkgo*
 fixtures/**/*_ginkgo_test.go
+tmp

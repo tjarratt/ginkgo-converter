@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"go/ast"
 	"regexp"
 )
@@ -76,24 +75,14 @@ func findTestsInFile(pathToFile string) (err error) {
 		return
 	}
 
-	var fileToWrite string
-	var mode os.FileMode
-	if *shouldOverwriteTests {
-		fileToWrite = pathToFile
-
-		var fileInfo os.FileInfo
-		fileInfo, err = os.Stat(pathToFile)
-		if err != nil {
-			return
-		}
-
-		mode = fileInfo.Mode()
-	} else {
-		fileToWrite = strings.Replace(pathToFile, "_test.go", "_ginkgo_test.go", 1)
-		mode = 0644
+	fileInfo, err := os.Stat(pathToFile)
+	if err != nil {
+		return
 	}
 
-	ioutil.WriteFile(fileToWrite, buffer.Bytes(), mode)
+	mode := fileInfo.Mode()
+
+	ioutil.WriteFile(pathToFile, buffer.Bytes(), mode)
 	return
 }
 
