@@ -1,4 +1,4 @@
-package ginkgo_convert
+package main
 
 import(
   "go/ast"
