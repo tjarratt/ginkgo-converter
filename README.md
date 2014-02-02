@@ -27,16 +27,16 @@ amazing_ginkgo_test.go
 package amazing
 
 import (
-  "testing"
   . "github.com/onsi/gingko"
   . "github.com/onsi/gomega"
+  mr "github.com/tjarratt/mr_t"
 )
 
 func init() {
   Describe("Using ginkgo", func() {
     It("TestSomethingImportant", func() {
       whatever := &UselessStruct{}
-      t.Fail(whatever.ImportantField != "SECRET_PASSWORD")
+      mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")
     })
   })
 }
@@ -50,4 +50,9 @@ Ginkgo-Convert's secret sauce is the ast/parser format package that Go ships wit
 What is left to do?
 -----------------------
 - check for the presence of ginkgo && gomega?, ask the user to install it?
+- better instructions for users switching from the unit testing framework
+- consider converting non-test code files that use *testing.T
+- get tests passing on travis-ci.org
+- code cleanup
+- issue PR to github.com/onsi/ginkgo
 - discover more edgecases in the AST rewriter (on-going)
