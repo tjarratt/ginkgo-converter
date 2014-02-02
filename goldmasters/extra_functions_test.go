@@ -1,4 +1,4 @@
-package fixtures
+package tmp
 
 import (
 	. "github.com/onsi/ginkgo"

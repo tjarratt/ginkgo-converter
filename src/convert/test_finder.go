@@ -1,4 +1,4 @@
-package main
+package ginkgo_convert
 
 import (
 	"bytes"
@@ -9,12 +9,13 @@ import (
 	"go/parser"
 	"io/ioutil"
 	"os"
+  "os/exec"
 	"path/filepath"
 	"go/ast"
 	"regexp"
 )
 
-func findTestsForPackage(packageName string) (tests []string, err error) {
+func RewritePackage(packageName string) (tests []string, err error) {
 	pkg, err := build.Default.Import(packageName, ".", build.ImportMode(0))
 	if err != nil {
 		return
@@ -34,7 +35,7 @@ func findTestsForPackage(packageName string) (tests []string, err error) {
 			continue
 		}
 
-		moreTests, err := findTestsForPackage(filepath.Join(pkg.ImportPath, file.Name()))
+		moreTests, err := RewritePackage(filepath.Join(pkg.ImportPath, file.Name()))
 		tests = append(tests, moreTests...)
 
 		if err != nil {
@@ -42,10 +43,11 @@ func findTestsForPackage(packageName string) (tests []string, err error) {
 		}
 	}
 
+	addGinkgoSuiteForPackage(pkg)
 	return
 }
 
-func findTestsInFile(pathToFile string) (err error) {
+func RewriteTestsInFile(pathToFile string) (err error) {
 	fileSet := token.NewFileSet()
 	rootNode, err := parser.ParseFile(fileSet, pathToFile, nil, 0)
 	if err != nil {
@@ -71,7 +73,6 @@ func findTestsInFile(pathToFile string) (err error) {
 
 	var buffer bytes.Buffer
 	if err = format.Node(&buffer, fileSet, rootNode); err != nil {
-		println(err.Error())
 		return
 	}
 
@@ -143,8 +144,7 @@ func rewriteTestInGinkgo(testFunc *ast.FuncDecl, rootNode *ast.File, describe *a
 	}
 
 	if funcIndex < 0 {
-		println("Assert Error: Error finding index for test node %s\n", testFunc.Name.Name)
-		os.Exit(1)
+		panic(fmt.Sprintf("Assert Error: Error finding index for test node %s\n", testFunc.Name.Name))
 	}
 
 	// create a new node
@@ -357,5 +357,35 @@ func replaceTestingTsMethodCalls(selectorExpr *ast.SelectorExpr, testingT string
 	// by replacing with T().Fail()
 	if ident.Name == testingT {
 		selectorExpr.X = newMrTFromIdent(ident)
+	}
+}
+
+func addGinkgoSuiteForPackage(pkg *build.Package) {
+	originalDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	suite_test_file := filepath.Join(pkg.Dir, pkg.Name + "_suite_test.go")
+	_, err = os.Stat(suite_test_file)
+	if err == nil {
+		return
+	}
+
+	err = os.Chdir(pkg.Dir)
+	if err != nil {
+		panic(err)
+	}
+
+	output, err := exec.Command("ginkgo", "bootstrap").Output()
+
+	if err != nil {
+		fmt.Printf("error running 'ginkgo bootstrap':\n%s\n", output)
+		panic(err.Error())
+	}
+
+	err = os.Chdir(originalDir)
+	if err != nil {
+		panic(err)
 	}
 }

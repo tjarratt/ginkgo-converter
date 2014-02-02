@@ -1,38 +1,29 @@
 package main
 
 import (
-	"flag"
+	. "convert"
 	"fmt"
-	"go/build"
 	"os"
 )
 
 func main() {
-	flag.Parse()
-
-	if len(flag.Args()) != 1 {
+	if len(os.Args) != 2 {
 		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
 		os.Exit(1)
 	}
 
-	testFiles, err := findTestsForPackage(flag.Args()[0])
+	testFiles, err := RewritePackage(os.Args[1])
 	if err != nil {
-		fmt.Printf("unexpected error reading package: '%s'\n%s\n", flag.Args()[0], err.Error())
+		fmt.Printf("unexpected error reading package: '%s'\n%s\n", os.Args[1], err.Error())
 		os.Exit(1)
 	}
 
 	for _, filename := range testFiles {
-		err := findTestsInFile(filename)
+		err := RewriteTestsInFile(filename)
 
 		if err != nil {
-			panic(err.Error())
+			fmt.Printf("unexpected error rewriting tests in file: %s\n%s", filename, err.Error())
+			os.Exit(1)
 		}
 	}
-
-	pkg, err := build.Default.Import(flag.Args()[0], ".", build.ImportMode(0))
-	if err != nil {
-		panic(err)
-	}
-
-	addGinkgoSuiteFile(pkg.Dir)
 }

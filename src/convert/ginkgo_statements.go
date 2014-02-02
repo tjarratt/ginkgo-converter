@@ -1,35 +1,8 @@
-package main
+package ginkgo_convert
 
 import(
-	"os"
-  "os/exec"
   "go/ast"
 )
-
-func addGinkgoSuiteFile(pathToPackage string) {
-	originalDir, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.Chdir(pathToPackage)
-	if err != nil {
-		panic(err)
-	}
-
-	// FIXME : don't do this if we already have a test suite file
-	cmd := exec.Command("ginkgo", "bootstrap")
-	err = cmd.Run()
-
-	if err != nil {
-		panic(err.Error())
-	}
-
-	err = os.Chdir(originalDir)
-	if err != nil {
-		panic(err)
-	}
-}
 
 func createInitBlock() *ast.FuncDecl {
 	blockStatement := &ast.BlockStmt{List: []ast.Stmt{}}

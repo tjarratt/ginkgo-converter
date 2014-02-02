@@ -1,4 +1,4 @@
-package main
+package ginkgo_convert
 
 import (
 	"errors"

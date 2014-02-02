@@ -1,3 +1,7 @@
 #!/usr/bin/env sh
 
+BIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR=$BIN_DIR/..
+GOPATH=$GOPATH:$DIR
+
 go build -o bin/ginkgo-convert

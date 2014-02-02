@@ -1,3 +1,7 @@
 #!/usr/bin/env sh
 
-bin/build && bin/ginkgo
+BIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR=$BIN_DIR/..
+GOPATH=$GOPATH:$DIR
+
+$(dirname $0)/build && $(dirname $0)/ginkgo

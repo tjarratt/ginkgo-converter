@@ -1,4 +1,4 @@
-package fixtures_test
+package tmp_test
 
 import (
 	"testing"

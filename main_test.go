@@ -33,7 +33,7 @@ func init() {
 			})
 		})
 
-		It("rewrites tests in the given directory, in other packages'", func() {
+		It("rewrites tests in the package dir that belong to other packages", func() {
 			withTempDir(func(tempDir string) {
 				runGinkgoConvert()
 
@@ -43,7 +43,7 @@ func init() {
 		  })
 		})
 
-		It("rewrites all tests in your package", func() {
+		It("rewrites tests in nested packages", func() {
 			withTempDir(func(dir string) {
 				runGinkgoConvert()
 
@@ -53,13 +53,37 @@ func init() {
 			})
 		})
 
-		It("creates a ginkgo test suite file", func() {
-			withTempDir(func(dir string) {
-				runGinkgoConvert()
+		Context("ginkgo test suite files", func() {
+			It("creates a ginkgo test suite file for the package you specified", func() {
+				withTempDir(func(dir string) {
+					runGinkgoConvert()
 
-				testsuite := readConvertedFileNamed(dir, "tmp_suite_test.go")
-				goldmaster := readGoldMasterNamed("suite_test.go")
-				Expect(testsuite).To(Equal(goldmaster))
+					testsuite := readConvertedFileNamed(dir, "tmp_suite_test.go")
+					goldmaster := readGoldMasterNamed("suite_test.go")
+					Expect(testsuite).To(Equal(goldmaster))
+				})
+			})
+
+			It("creates ginkgo test suites for all nested packages", func() {
+				withTempDir(func(dir string) {
+					runGinkgoConvert()
+
+					testsuite := readConvertedFileNamed(dir, "nested", "nested_suite_test.go")
+					goldmaster := readGoldMasterNamed("nested_suite_test.go")
+					Expect(testsuite).To(Equal(goldmaster))
+				})
+			})
+
+			It("gracefully handles existing test suite files", func() {
+				withTempDir(func (dir string) {
+					cwd, err := os.Getwd()
+					bytes, err := ioutil.ReadFile(filepath.Join(cwd, "goldmasters", "fixtures_suite_test.go"))
+					Expect(err).NotTo(HaveOccurred())
+					err = ioutil.WriteFile(filepath.Join(cwd, "tmp", "tmp_suite_test.go"), bytes, 0600)
+					Expect(err).NotTo(HaveOccurred())
+
+					runGinkgoConvert()
+				})
 			})
 		})
 	})
@@ -110,7 +134,11 @@ func runGinkgoConvert() {
 
 	pathToExecutable := filepath.Join(cwd, "bin", "ginkgo-convert")
 	cmd := exec.Command(pathToExecutable, "github.com/tjarratt/ginkgo-convert/tmp")
-	err = cmd.Run()
+	out, err := cmd.Output()
+
+	if err != nil {
+		println("ginkgo-convert failed:", string(out))
+	}
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -124,8 +152,8 @@ func readGoldMasterNamed(filename string) string {
 	return string(bytes)
 }
 
-func readConvertedFileNamed(tempDir, filename string) string {
-	pathToFile := filepath.Join(tempDir, filename)
+func readConvertedFileNamed(pathComponents ...string) string {
+	pathToFile := filepath.Join(pathComponents...)
 	bytes, err := ioutil.ReadFile(pathToFile)
 	Expect(err).NotTo(HaveOccurred())
 
