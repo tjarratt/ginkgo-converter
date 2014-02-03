@@ -1,8 +1,8 @@
 package main
 
-import(
+import (
 	"fmt"
-  "go/ast"
+	"go/ast"
 )
 
 /*

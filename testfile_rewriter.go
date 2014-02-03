@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
 	"go/format"
-	"go/token"
 	"go/parser"
+	"go/token"
 	"io/ioutil"
 	"os"
-	"go/ast"
 )
 
 /*
@@ -49,7 +49,7 @@ func rewriteTestsInFile(pathToFile string) {
 
 	fileInfo, err := os.Stat(pathToFile)
 	if err != nil {
-			panic(fmt.Sprintf("Error stat'ing file: %s\n", pathToFile))
+		panic(fmt.Sprintf("Error stat'ing file: %s\n", pathToFile))
 	}
 
 	ioutil.WriteFile(pathToFile, buffer.Bytes(), fileInfo.Mode())

@@ -68,7 +68,7 @@ func addGinkgoSuiteForPackage(pkg *build.Package) {
 		panic(err)
 	}
 
-	suite_test_file := filepath.Join(pkg.Dir, pkg.Name + "_suite_test.go")
+	suite_test_file := filepath.Join(pkg.Dir, pkg.Name+"_suite_test.go")
 	_, err = os.Stat(suite_test_file)
 	if err == nil {
 		return // test file already exists, this should be a no-op

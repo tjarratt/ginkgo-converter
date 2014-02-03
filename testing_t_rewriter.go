@@ -1,6 +1,6 @@
 package main
 
-import(
+import (
 	"go/ast"
 )
 
@@ -61,7 +61,6 @@ func walkNodesInRootNodeReplacingTestingT(rootNode *ast.File) {
 		return true
 	})
 }
-
 
 /*
  * replaces named *testing.T inside a composite literal
