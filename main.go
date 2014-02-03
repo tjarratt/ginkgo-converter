@@ -7,7 +7,7 @@ import (
 
 func main() {
 	if len(os.Args) != 2 {
-		println(fmt.Sprintf("usage: %s /path/to/some/file_test.go", os.Args[0]))
+		println(fmt.Sprintf("usage: %s /path/to/your/package", os.Args[0]))
 		os.Exit(1)
 	}
 
