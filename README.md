@@ -16,7 +16,7 @@ Getting Started
 How does it work?
 -----------------
 
-ginkgo-gonverter rewrites your crummy old XUnit style tests into amazing Ginkgo tests:
+ginkgo-converter rewrites your crummy old XUnit style tests into amazing Ginkgo tests:
 
 old_boring_test.go
 ```go
