@@ -11,7 +11,7 @@ type UselessStruct struct {
 
 func init() {
 	Describe("Testing with ginkgo", func() {
-		It("TestSomethingImportant", func() {
+		It("something important", func() {
 
 			whatever := &UselessStruct{}
 			mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")

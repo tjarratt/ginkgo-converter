@@ -7,7 +7,7 @@ import (
 
 func init() {
 	Describe("Testing with ginkgo", func() {
-		It("TestSomethingLessImportant", func() {
+		It("something less important", func() {
 
 			whatever := &UselessStruct{}
 			mr.T().Fail(whatever.ImportantField != "SECRET_PASSWORD")

@@ -14,7 +14,7 @@ var testFunc = func(t mr.TestingT, arg *string) {}
 
 func init() {
 	Describe("Testing with ginkgo", func() {
-		It("TestSomethingImportant", func() {
+		It("something important", func() {
 
 			whatever := &UselessStruct{
 				T:              mr.T(),
