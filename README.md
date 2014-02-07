@@ -1,5 +1,10 @@
+Deprecated
+----------
+
+This functionality is now in Ginkgo itself. Get the latest [Ginkgo](https://github.com/onsi/ginkgo) and just run `ginkgo convert your/package/name`.
+
 What's that you say? Ginkgo???
------------------------
+------------------------------
 
 That's right! [Ginkgo](https://github.com/onsi/ginkgo) is a great BDD framework for Go. However, many projects already have a relatively large test suite built up around the XUnit style test framework that Go ships with. You can use ginkgo-converter to quickly convert your existing test suite to use Ginkgo without having to rewrite all of your tests by hand.
 
